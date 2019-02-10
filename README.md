@@ -1,4 +1,4 @@
-# Installation of IBM Cloud Private Community Edition on a single VM
+# Installation of IBM Cloud Private Community Edition in a single VM
 
 The Community Edition of IBM Cloud Private is free and is a great resource to learn.
 
@@ -27,6 +27,8 @@ You can download the base VM from [here](#) for the purpose of following through
     systemctl start docker
     ```
 * The root password is `password` in the base VM and it automatically logs in user `db2psc` for which the password is `password`.
+
+If you want to skip the following IBM Cloud Private Installation procedure, you can download the VM with IBM Cloud Private from this [link](#).
 
 ## Resource for VM
 
@@ -386,4 +388,214 @@ This will show the web UI of the IBM Cloud Private. Go through this to familiari
 
 Click `Catalog` to see the number of open source helm charts that you can install in this IBM Cloud Private Kubernetes cluster. 
 
+### Turn-off some non-essential daemonsets and deployments to conserve resources
 
+Run the following commands to turn off some daemonsets and deployments that we do not require.
+
+```
+echo Put label switch=up on this node
+kubectl label node $(hostname -i) switch=up --overwrite
+
+echo Patch daemonsets with label switch=down 
+kubectl -n kube-system patch ds logging-elk-filebeat-ds  --patch '{ "spec": { "template": { "spec": { "nodeSelector": { "switch": "down" } } } } }'
+kubectl -n kube-system patch ds nvidia-device-plugin  --patch '{ "spec": { "template": { "spec": { "nodeSelector": { "switch": "down" } } } } }'
+kubectl -n kube-system patch ds audit-logging-fluentd-ds  --patch '{ "spec": { "template": { "spec": { "nodeSelector": { "switch": "down" } } } } }'
+
+echo set replicas=0 for deployments
+kubectl -n kube-system scale deploy logging-elk-client --replicas=0
+kubectl -n kube-system scale deploy logging-elk-kibana --replicas=0
+kubectl -n kube-system scale deploy logging-elk-logstash --replicas=0
+kubectl -n kube-system scale deploy logging-elk-master --replicas=0
+kubectl -n kube-system scale deploy secret-watcher --replicas=0
+```
+
+In case, the ds and deployments need to start. We can run the following commands to start them. [Note: Just for reference - do not run.]
+
+```
+  kubectl -n kube-system patch ds logging-elk-filebeat-ds --patch '{ "spec": { "template": { "spec": { "nodeSelector": { "switch": "up" } } } } }'
+  kubectl -n kube-system patch ds nvidia-device-plugin  --patch '{ "spec": { "template": { "spec": { "nodeSelector": { "switch": "up" } } } } }'
+  kubectl -n kube-system patch ds audit-logging-fluentd-ds  --patch '{ "spec": { "template": { "spec": { "nodeSelector": { "switch": "up" } } } } }'
+
+  kubectl -n kube-system scale deploy logging-elk-client --replicas=1
+  kubectl -n kube-system scale deploy logging-elk-kibana --replicas=1
+  kubectl -n kube-system scale deploy logging-elk-logstash --replicas=1
+  kubectl -n kube-system scale deploy logging-elk-master --replicas=1
+  kubectl -n kube-system scale deploy secret-watcher --replicas=1
+```
+
+## Download VM with ICP Installed
+
+If you want to skip the IBM Cloud Private Installation procedure, you can download the VM with IBM Cloud Private from this [link](#).
+
+## Install Bookinfo Microservice Application from Istio
+
+We will install a sample Microservice application in IBM Cloud Private environment.
+
+The sample application is available at https://istio.io/docs/examples/bookinfo/
+
+### Create name space
+
+We will install this application in a namespace `istio-lab`. Create the name space as follows:
+
+```
+kubectl create namespace istio-lab
+```
+
+### Grant cluster admin role to the name space
+
+```
+echo Create cluster role binding
+
+cat << EOF | kubectl apply -f -
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: istio-lab-cluster-role-binding
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: cluster-admin
+subjects:
+- apiGroup: rbac.authorization.k8s.io
+  kind: Group
+  name: system:serviceaccounts:istio-lab
+EOF
+```
+
+### Create image policy to download docker images from docker.io/istio
+
+```
+echo Create image policy to download docker images from docker.io/istio
+kubectl create -f - << EOF
+apiVersion: securityenforcement.admission.cloud.ibm.com/v1beta1
+kind: ClusterImagePolicy
+metadata:
+  name: istio-lab-image-policy
+spec:
+  repositories:
+  - name: docker.io/istio/*
+    policy:
+      va:
+        enabled: false
+EOF
+```
+
+### Download Bookinfo YAML 
+
+```
+curl -L https://raw.githubusercontent.com/istio/istio/master/samples/bookinfo/platform/kube/bookinfo.yaml -o bookinfo.yaml
+```
+
+### Install Bookinfo Microservice application
+
+```
+kubectl -n istio-lab apply -f bookinfo.yaml
+```
+
+The docker images will be downloaded from the `docker.io/istio/*`
+
+Check progress of the Microservice application deployment
+
+```
+# kubectl -n istio-lab get pods
+NAME                             READY     STATUS              RESTARTS   AGE
+details-v1-756886897d-7f9fs      0/1       ContainerCreating   0          11s
+productpage-v1-8fcdcb496-6brcx   0/1       ContainerCreating   0          8s
+ratings-v1-7fc6ccbbbb-sfm9q      0/1       ContainerCreating   0          11s
+reviews-v1-59ff68c6cf-qhht7      0/1       ContainerCreating   0          11s
+reviews-v2-58f7dbbf8c-44mn7      0/1       ContainerCreating   0          10s
+reviews-v3-654d6f5b95-xz4zl      0/1       ContainerCreating   0          9s
+```
+
+After a while, all micro services should be up and running.
+
+```
+# kubectl -n istio-lab get pods
+NAME                             READY     STATUS    RESTARTS   AGE
+details-v1-756886897d-7f9fs      1/1       Running   0          4m
+productpage-v1-8fcdcb496-6brcx   1/1       Running   0          4m
+ratings-v1-7fc6ccbbbb-sfm9q      1/1       Running   0          4m
+reviews-v1-59ff68c6cf-qhht7      1/1       Running   0          4m
+reviews-v2-58f7dbbf8c-44mn7      1/1       Running   0          4m
+reviews-v3-654d6f5b95-xz4zl      1/1       Running   0          4m
+```
+
+## Install Booksapp Microservice Application from Linkerd
+
+We will install a sample Microservice application in IBM Cloud Private environment for Linkerd.
+
+The sample application is available at https://github.com/BuoyantIO/booksapp
+
+### Create name space
+
+We will install this application in a namespace `linkerd-lab`. Create the name space as follows:
+
+```
+kubectl create namespace linkerd-lab
+```
+
+### Grant cluster admin role to the name space
+
+```
+echo Create cluster role binding
+
+cat << EOF | kubectl apply -f -
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: linkerd-lab-cluster-role-binding
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: cluster-admin
+subjects:
+- apiGroup: rbac.authorization.k8s.io
+  kind: Group
+  name: system:serviceaccounts:linkerd-lab
+EOF
+```
+
+### Create image policy to download docker images from docker.io/istio
+
+```
+echo Create image policy to download docker images from docker.io/buoyant
+kubectl create -f - << EOF
+apiVersion: securityenforcement.admission.cloud.ibm.com/v1beta1
+kind: ClusterImagePolicy
+metadata:
+  name: linkerd-lab-image-policy
+spec:
+  repositories:
+  - name: docker.io/buoyantio*
+    policy:
+      va:
+        enabled: false
+EOF
+```
+
+### Download Booksapp Microservice from Linkerd.io
+
+```
+curl -L https://run.linkerd.io/booksapp.yml -o booksapp.yaml
+```
+
+### Install Booksapp Microservice application from Linkerd
+
+```
+kubectl -n linkerd-lab apply -f booksapp.yaml
+```
+
+The docker images will be downloaded from the `docker.io/buoyantio/*`
+
+Check progress of the Microservice application deployment from linkerd
+
+```
+# kubectl -n linkerd-lab get pods
+NAME                      READY     STATUS    RESTARTS   AGE
+authors-57dfdd8cc-5dlvd   1/1       Running   0          57s
+books-579b4d84cc-bhw95    1/1       Running   0          57s
+traffic-8bf9fb6b-kl9xk    1/1       Running   0          56s
+webapp-84478cc85c-gbcj4   1/1       Running   0          57s
+webapp-84478cc85c-kwbrw   1/1       Running   0          57s
+webapp-84478cc85c-pgb6g   1/1       Running   0          57s
+```
