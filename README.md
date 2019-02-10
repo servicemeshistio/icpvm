@@ -7,8 +7,8 @@ Let's walk through the steps to install a single node IBM Cloud Private Cluster
 ## Prerequisites
 
 * A decent Windows 7 / 10 laptop with minimum 16 GB RAM and Intel Core i7 processor and a preferable minimum 512 GB SSD
-* VMWare Workstation 14.1.2/15.0.2 - Even though it is a licensed software, it is worth buying it. The VMware is a rock solid software.
-* You can use `free` VMware player but just know that you can run only one VM per host, which is OK for this environment.
+* VMWare Workstation 14.1.2/15.0.2 - Even though it is a licensed software, it is worth buying it. The VMware Workstation is a rock solid software.
+* You can use `free` VMware player but you can run only one VM per host, which is OK for this environment.
 * Build your VM. My personal choice is to use `CentOS` but you can use any Linux distribution of your choice.
 * In VMware Workstation, `Edit` ⇨ `Virtual Network Editor` to set the `vmnet8` to subnet address `192.168.142.0` in NAT mode.
 * Attach 100 GB thin provisioned disk (vmdk) for storing Docker images and containers
@@ -371,6 +371,8 @@ EOF
 After we create a different home dir for `kubeconfig`, we can set the context to this.
 
 ```
+MYKUBE=$HOME/.mykube
+export KUBECONFIG=$MYKUBE/config
 kubectl config use-context servicemesh
 ```
 
@@ -599,3 +601,23 @@ webapp-84478cc85c-gbcj4   1/1       Running   0          57s
 webapp-84478cc85c-kwbrw   1/1       Running   0          57s
 webapp-84478cc85c-pgb6g   1/1       Running   0          57s
 ```
+
+## Troubleshooting
+
+After you shutdown VM and restart again, `kubectl -n kube-system get pods` or other `kubectl` command fails with the follwoing message.
+
+```
+[root@osc01 ~]# kubectl -n kube-system get pods
+error: the server doesn't have a resource type "pods"
+```
+
+This is due to the fact that proper kubectl context is not set properly after VM was restarted.
+
+You can fix this by running the following commands.
+
+```
+export KUBECONFIG=/root/.mykube/config
+kubectl config use-context servicemesh
+```
+
+After proper contexts are set, you can run `kubectl` commands.
