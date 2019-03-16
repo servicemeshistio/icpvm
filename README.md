@@ -7,7 +7,7 @@ Let's walk through the steps to install a single node IBM Cloud Private Cluster
 ## Prerequisites
 
 * A decent Windows 7 / 10 laptop with minimum 16 GB RAM and Intel Core i7 processor and a preferable minimum 512 GB SSD
-* VMWare Workstation 14.1.2/15.0.2 - Even though it is a licensed software, it is worth buying it. The VMware Workstation is a rock solid software.
+* VMWare Workstation 14.1.2/15.0.3 - Even though it is a licensed software, it is worth buying it. The VMware Workstation is a rock solid software.
 * You can use `free` VMware player but you can run only one VM per host, which is OK for this environment.
 * Build your VM. My personal choice is to use `CentOS` but you can use any Linux distribution of your choice.
 * In VMware Workstation, `Edit` ⇨ `Virtual Network Editor` to set the `vmnet8` to subnet address `192.168.142.0` in NAT mode.
@@ -58,10 +58,10 @@ Login to Dockerhub
 docker login -u <username> -p <password>
 ```
 
-Download ICP 3.1.2 installer (At the time of writing this guide, ICP 3.1.1 is the latest version.)
+Download ICP 3.1.2 installer (At the time of writing this guide, ICP 3.1.2 is the latest version.)
 
 ```
-docker pull ibmcom/icp-inception:3.1.1
+docker pull ibmcom/icp-inception:3.1.2
 ```
 
 The docker pull will begin to download the ICP installer.
@@ -94,11 +94,11 @@ bf0833453156: Waiting
 Extract sample hosts and config.yaml file from the installer and copy private ssh key to the ICP home directory
 
 ```
-mkdir -p /opt/ibm/icp3.1.1
-cd /opt/ibm/icp3.1.1
+mkdir -p /opt/ibm/icp3.1.2
+cd /opt/ibm/icp3.1.2
 
 docker run --rm -v $(pwd):/data -e LICENSE=accept \
-   ibmcom/icp-inception:3.1.1 \
+   ibmcom/icp-inception:3.1.2 \
    cp -r cluster /data
 ```
 
@@ -125,7 +125,7 @@ The `ssh-copy-id` will prompt for specifying root password for the VM. The hostn
 Define the topology of the ICP cluster by editing and making changes to the hosts file.
 
 ```
-cd /opt/ibm/icp3.1.1/cluster
+cd /opt/ibm/icp3.1.2/cluster
 ```
 
 Edit file `hosts` to define the topology as per below:
@@ -169,6 +169,8 @@ install_docker: false
 private_registry_enabled: false
 image_repo: ibmcom
 offline_pkg_copy_path: /temp
+password_rules:
+ - '(.*)'
 management_services:
  istio: disabled
  vulnerability-advisor: disabled
@@ -184,13 +186,13 @@ management_services:
 ### Install IBM Cloud Private
 
 ```
-cd /opt/ibm/icp3.1.1/cluster
+cd /opt/ibm/icp3.1.2/cluster
 docker run --rm \
    --net=host -t \
    --name=inception \
    -e LICENSE=accept \
    -v $(pwd):/installer/cluster \
-   ibmcom/icp-inception:3.1.1 \
+   ibmcom/icp-inception:3.1.2 \
    install -vv
 ```
 
@@ -211,12 +213,12 @@ However, you can restart the installation using the same command. To start clean
 Uninstall in case you need to restart it again
 
 ```
-cd /opt/ibm/icp3.1.1/cluster
+cd /opt/ibm/icp3.1.2/cluster
 docker run --rm \
    --net=host -t \
    -e LICENSE=accept \
    -v $(pwd):/installer/cluster \
-   ibmcom/icp-inception:3.1.0 \
+   ibmcom/icp-inception:3.1.2 \
    uninstall -vv
 
 ```
@@ -260,9 +262,9 @@ Playbook run took 0 days, 0 hours, 20 minutes, 38 seconds
 Install kubectl on the guest VM to run the command line tool.
 
 ```
-cd /opt/ibm/icp3.1.1/cluster
+cd /opt/ibm/icp3.1.2/cluster
 docker run --rm -v $(pwd):/data -e LICENSE=accept \
-   ibmcom/icp-inception:3.1.1 \
+   ibmcom/icp-inception:3.1.2 \
    cp -r /usr/local/bin/kubectl /data
 
 chmod +x kubectl
@@ -338,7 +340,7 @@ Here is an example:
 
 ```
 MASTERNODE=192.168.142.101
-ICP_HOMEDIR=/opt/ibm/icp3.1.1
+ICP_HOMEDIR=/opt/ibm/icp3.1.2
 MYKUBE=$HOME/.mykube
 export KUBECONFIG=$MYKUBE/config
 mkdir -p $MYKUBE/conf
