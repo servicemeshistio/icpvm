@@ -15,7 +15,7 @@ Let's walk through the steps to install a single node IBM Cloud Private Cluster
 
 ## Download Base VM without ICP
 
-You can download the base VM from [here](#) for the purpose of following through the book. The VM was built using CentOS 7.6 Linux distribution on VMware Workstation 15.0.2. If you prefer your own choice of Linux distribution, build your VM and meet the following prerequisites:
+You can download the base VM from [here](#) for the purpose of following through the book. The VM was built using CentOS 7.6 Linux distribution on VMware Workstation 15.0.3. If you prefer your own choice of Linux distribution, build your VM and meet the following prerequisites:
 
 * Install docker-ce server on your VM
 * Example to download docker-ce on CentOS or RHEL system
@@ -67,7 +67,7 @@ docker pull ibmcom/icp-inception:3.1.2
 The docker pull will begin to download the ICP installer.
 
 ```
-3.1.0: Pulling from ibmcom/icp-inception
+3.1.2: Pulling from ibmcom/icp-inception
 a073c86ecf9e: Pull complete
 cbc604ae1944: Downloading [============>                                      ]  18.85MB/74.78MB
 650be687acc7: Download complete
@@ -178,6 +178,7 @@ management_services:
  storage-minio: disabled
  image-security-enforcement: enabled
  metering: disabled
+ logging: disabled
  monitoring: disabled
  service-catalog: disabled
  custom-metrics-adapter: disabled
@@ -259,7 +260,9 @@ Playbook run took 0 days, 0 hours, 20 minutes, 38 seconds
 
 ### Install kubectl
 
-Install kubectl on the guest VM to run the command line tool.
+`kubectl` gets installed automatically to `/usr/local/bin`.
+
+Just for reference: You can install `kubectl` on the guest VM from the inception container.
 
 ```
 cd /opt/ibm/icp3.1.2/cluster
@@ -274,7 +277,11 @@ cp kubectl /bin
 
 ### Install cloudctl and helm client
 
-The `cloudctl` tool is the superset of cloud foundry tool to run command line tools to authenticate with IBM Cloud Private so that helm install can be done using `mTLS`. Their are many other capabilities of `cloudctl`.
+ The `cloudctl` tool is the superset of cloud foundry tool to run command line tools to authenticate with IBM Cloud Private so that helm install can be done using `mTLS`. Their are many other capabilities of `cloudctl`.
+
+`cloudctl` gets installed automatically to `/usr/local/bin`.
+
+Just for reference: You can get `cloudctl` from inception container.
 
 ```
 MASTERNODE=192.168.142.101
@@ -393,6 +400,10 @@ This will show the web UI of the IBM Cloud Private. Go through this to familiari
 Click `Catalog` to see the number of open source helm charts that you can install in this IBM Cloud Private Kubernetes cluster. 
 
 ### Turn-off some non-essential daemonsets and deployments to conserve resources
+
+Note: This step is not necessary now since we specified `logging` false in `config.yaml` file.
+
+Just for reference:
 
 Run the following commands to turn off some daemonsets and deployments that we do not require.
 
