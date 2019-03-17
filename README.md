@@ -17,6 +17,10 @@ Let's walk through the steps to install a single node IBM Cloud Private Cluster
 
 You can download the base VM from [here](#) for the purpose of following through the book. The VM was built using CentOS 7.6 Linux distribution on VMware Workstation 15.0.3. If you prefer your own choice of Linux distribution, build your VM and meet the following prerequisites:
 
+* Install `socat` - For Helm, `socat` is used to set the port forwarding for both the Helm client and Tiller.
+  ```
+  yum -y install socat
+  ```
 * Install docker-ce server on your VM
 * Example to download docker-ce on CentOS or RHEL system
     ```
@@ -401,7 +405,7 @@ Click `Catalog` to see the number of open source helm charts that you can instal
 
 ### Turn-off some non-essential daemonsets and deployments to conserve resources
 
-Note: This step is not necessary now since we specified `logging` false in `config.yaml` file.
+Note: When we specify `logging` false in `config.yaml` file, `audit-logging-fluentd-ds` still does not get disabled.
 
 Just for reference:
 
