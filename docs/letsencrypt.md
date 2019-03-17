@@ -193,7 +193,7 @@ docker login icp.zinox.com:8500 -u icpadmin
 
 ## Renew Letsencrypt Certificates
 
-Run [cron](scripts/cron.sh) job with a [deploy](scripts/deploy.sh) script.
+Run [cron](../scripts/cron.sh) job with a [deploy](../scripts/deploy.sh) script.
 
 ### Cron job
 
