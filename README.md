@@ -393,6 +393,30 @@ Now, we can run `kubectl` command which will not expire as we are using certific
 
 This method is good if we work directly from the server.
 
+### Set context and change context
+
+While typing many `kubectl` commands, we need to work in a specific namespace and that requires setting `-n <namespaceName>` in every command. The default namespace is `default` but that can be changed easily. 
+
+Copy these two functions in your `.bashrc` file to set context and change context.
+
+```
+function sc ()
+{
+  N=$1
+  shift
+  kubectl config set-context $(kubectl config current-context) --namespace=$N
+  export PS1="\[\e[1;32m\][\u@\h $(cs)\W]#\[\033[00m\] "
+}
+
+function cs ()
+{
+  CC=$(kubectl config current-context)
+  NS=$(kubectl config view -o jsonpath="{.contexts[?(@.name==\"$CC\")].context.namespace}")
+  export PS1="\[\e[1;32m\][\u@\h ($NS)\W]#\[\033[00m\] "
+  echo "($NS)"
+}
+```
+
 ### Launch IBM Cloud Private Web UI
 
 Open URL https://192.168.142.101:8443 from a browser. My personal choice is Google Chrome.
@@ -442,6 +466,37 @@ In case, the ds and deployments need to start. We can run the following commands
   kubectl -n kube-system scale deploy secret-watcher --replicas=1
 ```
 
+## Turn-off nginx-ingress-controller daemonset
+
+Let's turn off `nginx-ingress-controller` that comes with IBM Cloud Private.
+
+```
+echo Shutdown nginx-ingress-controller with changing proxy to false 
+kubectl -n kube-system patch ds nginx-ingress-controller  --patch '{ "spec": { "template": { "spec": { "nodeSelector": { "proxy": "false" } } } } }'
+```
+
+In case, you need  to turn on `nginx-ingress-controller`, you can run the following command:
+
+```
+echo Shutdown nginx-ingress-controller with changing proxy to true 
+kubectl -n kube-system patch ds nginx-ingress-controller  --patch '{ "spec": { "template": { "spec": { "nodeSelector": { "proxy": "true" } } } } }'
+```
+
+The alternative method is to edit the daemon set using `vi` and then change the label proxy from true to false or false to true.
+
+```
+kubectl -n kube-system edit ds nginx-ingress-controller
+```
+
+The definition of `ds` `nginx-ingress-controller` will open in a `vi` editor and you can edit the proxy field to either `true` or `false`.
+
+Example:
+
+```
+      nodeSelector:
+        proxy: "false"
+```
+
 ## Download VM with ICP Installed
 
 If you want to skip the IBM Cloud Private Installation procedure, you can download the VM with IBM Cloud Private from this [link](#).
@@ -481,18 +536,36 @@ subjects:
 EOF
 ```
 
-### Create image policy to download docker images from docker.io/istio
+### Create image policy to download docker images from docker.io
 
 ```
-echo Create image policy to download docker images from docker.io/istio
+echo Create image policy to download docker images from docker.io/*
 kubectl create -f - << EOF
 apiVersion: securityenforcement.admission.cloud.ibm.com/v1beta1
 kind: ClusterImagePolicy
 metadata:
-  name: istio-lab-image-policy
+  name: docker-image-policy
 spec:
   repositories:
-  - name: docker.io/istio/*
+  - name: docker.io/*
+    policy:
+      va:
+        enabled: false
+EOF
+```
+
+### Create image policy to download docker images from quay.io
+
+```
+echo Create image policy to download docker images from quio.io/*
+kubectl create -f - << EOF
+apiVersion: securityenforcement.admission.cloud.ibm.com/v1beta1
+kind: ClusterImagePolicy
+metadata:
+  name: quay-image-policy
+spec:
+  repositories:
+  - name: quay.io/*
     policy:
       va:
         enabled: false
