@@ -711,3 +711,18 @@ kubectl config use-context servicemesh
 ```
 
 After proper contexts are set, you can run `kubectl` commands.
+
+If you run `helm` command and get certificate error as shown:
+
+```
+# helm ls --tls
+could not read x509 key pair (cert: "/root/.helm/cert.pem", key: "/root/.helm/key.pem"): can't load key pair from cert /root/.helm/cert.pem and key /root/.helm/key.pem: open /root/.helm/cert.pem: no such file or directory
+```
+
+This can be solved by running `cloudctl` command that will do the login to the IBM Cloud Private and then download proper helm certificates in `~/.helm` directory
+
+```
+MASTERNODE=192.168.142.101
+CLUSTERNAME=servicemesh
+cloudctl login -n kube-system -u admin -p admin -a https://$MASTERNODE:8443 --skip-ssl-validation -c "id-$CLUSTERNAME-account"
+```
